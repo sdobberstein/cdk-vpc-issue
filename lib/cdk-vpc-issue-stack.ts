@@ -1,15 +1,25 @@
-import * as cdk from '@aws-cdk/core';
-// import * as sqs from '@aws-cdk/aws-sqs';
+import {Construct, Stack, StackProps} from "@aws-cdk/core";
+import {InterfaceVpcEndpointAwsService, SubnetFilter, Vpc} from "@aws-cdk/aws-ec2";
 
-export class CdkVpcIssueStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+export interface CdkVpcIssueStackProps extends StackProps {
+  readonly subnetIds: string[];
+  readonly vpcId: string;
+}
+
+export class CdkVpcIssueStack extends Stack {
+  constructor(scope: Construct, id: string, props: CdkVpcIssueStackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const vpc = Vpc.fromLookup(this, 'Vpc', {
+      vpcId: props.vpcId,
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'CdkVpcIssueQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const secretsManagerEndpoint = vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
+      service: InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+      subnets: {
+        subnetFilters: [SubnetFilter.byIds(props.subnetIds)],
+      },
+    });
+    secretsManagerEndpoint.connections.allowDefaultPortFromAnyIpv4();
   }
 }
